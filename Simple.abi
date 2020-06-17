@@ -1,0 +1,52 @@
+[
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "_a",
+				"type": "uint256"
+			},
+			{
+				"name": "_b",
+				"type": "uint256"
+			}
+		],
+		"name": "multiply",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"type": "function",
+		"stateMutability": "nonpayable"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "_a",
+				"type": "uint256"
+			},
+			{
+				"name": "_b",
+				"type": "uint256"
+			}
+		],
+		"name": "arithmetics",
+		"outputs": [
+			{
+				"name": "o_sum",
+				"type": "uint256"
+			},
+			{
+				"name": "o_product",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"type": "function",
+		"stateMutability": "nonpayable"
+	}
+]
