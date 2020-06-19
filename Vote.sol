@@ -4,6 +4,10 @@ pragma solidity ^0.4.13;
 /** 
  * @title Vote
  * @dev Implementation of a voting contract with 4 candidates
+ * 
+ * The contract creator is the manager and only that address can whitelist additional addresses so 
+ * that they can vote.
+ * The Winner needs 60% or more votes to win.
  */
  
 contract Vote {
@@ -46,10 +50,11 @@ contract Vote {
         
     }
     
+    // se puede hacer con un modifier
     function whiteList(address _address) public {
-        // Check that the contract creator is doing the whitelisting
+        // Check that the contract creator/manager is doing the whitelisting
         require(msg.sender == manager, "Only the managar can whitelist an address to vote!");
-        
+        //require((_address[0] == '0') && (_address[1] == 'x'), "Whitelist address is needed!");
         Voter storage voter = electors[_address];
         voter.isWhiteListed = true;
     }
@@ -66,7 +71,7 @@ contract Vote {
         // Has this address already voted?
         require(!voter.voted, "Unable to vote, already voted!");
         
-        // Add votes to a candidate
+        // Add votes to a candidate (index has to be corrected with -1)
         candidates[_selection - 1].votes++;
         // mark address so it cannot vote again
         voter.voted = true;
@@ -74,52 +79,48 @@ contract Vote {
     
     
     // function endVote() = declare Winner
-    function endVote() public returns (bytes32) {
+    function endVote() public view returns (bytes32) {
         // count total votes
         uint32 totalVotes = 0;
+        uint8 winner = 0;
         
+        // Only the manager can end the voting process
+        require(msg.sender == manager, "Only the managar can emd the voting!");
+
         for (uint8 i = 0; i < NUM_CANDIDATES; i++) {
             totalVotes = totalVotes + candidates[i].votes;
         }
         
-        // Sort Candidates according to votes (low to high)
-        sortCandidates(0);
+        // Get the index of the candidate with the most votes
+        winner = findWinner();
         
-        // Calculate if votes above 60%
-        // votes * 100 / totalVotes >= 60
-        // Winner is the last item of the sorted Array
-        // Check if Winner has 60% or more votes
-        return candidates[NUM_CANDIDATES].name;
+        // Calculate if votes above 60%, if so return that winners name
+        if ((candidates[winner].votes * 100 / totalVotes) >= 60) {
+            return candidates[winner].name;
+        }
+        
+        return "No one wins.";
     }
     
     // function findWinner()
     // read through the array and save the position of the highest votes, return that
-    function sortCandidates(uint8 _position) internal {
-        bytes32 temp_name;
-        uint16 temp_votes = 0;
+    function findWinner() internal view returns(uint8) {
+        uint8 winner = 0;           // same type a NUM_CANDIDATES to avoid overflow
+        uint16 highest_vote = 0;
         
-        // Break recursion if end of list 
-        if (_position == (NUM_CANDIDATES - 1)) {
-            return;
+        for (uint8 i = 0; i < NUM_CANDIDATES; i++) {
+            if (candidates[i].votes > highest_vote) {
+                highest_vote = candidates[i].votes;
+                winner = i;
+            }
         }
         
-        if (candidates[_position].votes > candidates[_position + 1].votes) {
-            temp_name = candidates[_position + 1].name;
-            temp_votes = candidates[_position + 1].votes;
-            
-            // Swap positions in list/Array
-            candidates[_position + 1].name = candidates[_position].name;
-            candidates[_position + 1].votes = candidates[_position].votes;
-            candidates[_position].name = temp_name;
-            candidates[_position].votes = temp_votes;
-        }
-        else {
-            sortCandidates(_position + 1);
-        }
+        return winner;        
     }
     
-    // function fallback if ETH send
+    // fallback function - if ETH send return the amount
     function() external payable {
-        
+        address wallet = msg.sender;
+        wallet.transfer(msg.value);
     }
 }
