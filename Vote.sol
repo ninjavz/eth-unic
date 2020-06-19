@@ -22,8 +22,7 @@ contract Vote {
     
     // These variables are stored in the blockchain
     mapping(address => Voter) public electors;    // Map address to stuct Voter to create voters
-    address[] public voterAccounts;             // Array to store all voters
-    
+
     Candidate[NUM_CANDIDATES] public candidates;    // variable that keeps record of the candidates
     
     address public manager;     // manager is the creator of the contract
@@ -53,8 +52,6 @@ contract Vote {
         
         Voter storage voter = electors[_address];
         voter.isWhiteListed = true;
-        
-        voterAccounts.push(_address);
     }
     
     // function voteFor(uint)
