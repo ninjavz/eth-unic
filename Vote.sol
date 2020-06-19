@@ -1,4 +1,4 @@
-pragma solidity ^0.5.10;
+pragma solidity ^0.5.1;
 // SPDX-License-Identifier: GPL-3.0
 
 /** 
@@ -17,29 +17,38 @@ pragma solidity ^0.5.10;
 contract Vote {
     uint8 constant NUM_CANDIDATES = 4;  // Limits candidates to 256
     
+    // Voter structure to keep track of Whitelisted addresses and voting status
     struct Voter {
         bool isWhiteListed;   // only registered addresses can vote
-        bool voted;         // check wheter an address has already voted
+        bool voted;           // check wheter an address has already voted
     }
-
+    
+    // Candidates structure to keep track of their respective collected votes
     struct Candidate {
-        bytes32 name;       // Candidate name
+        string name;        // Candidate name
         uint16 votes;       // Number of votes per candidate (limited to 16 bit)
     }
     
-    // These variables are stored in the blockchain
+    // These variables are stored in the blockchain (state)
     mapping(address => Voter) public electors;    // Map address to stuct Voter to create voters
 
-    Candidate[NUM_CANDIDATES] public candidates;    // variable that keeps record of the candidates
+    Candidate[NUM_CANDIDATES] public candidates;  // variable that keeps record of the candidates
     
-    address public manager;     // manager is the creator of the contract
+    address public manager;     // manager is the creator/owner of the contract
     
     // constructor 
+    // Initiates the list of Candidates
+    // Sets the manager to the calling address (the creator of the contract)
     constructor() public {
         
-        // Create de Candidates Names (in the future using string and for loop and concatenating)
+        // Create the Candidates Names (in the future using string and for loop and concatenating)
         // Set their respective votes to 0
         // Total candidates = 0 to NUM_CANDIDATES-1
+        // For future implmentation a FOR loop
+        //for (uint8 i = 0; i < NUM_CANDIDATES - 1; i++) {
+        //    candidates[i].name = string(abi.encodePacked("Candidate ", string(i)));
+        //    candidates[i].votes = 0;
+        //}
         candidates[0].name = "Candidate1";
         candidates[0].votes = 0;
         candidates[1].name = "Candidate2";
@@ -49,28 +58,42 @@ contract Vote {
         candidates[3].name = "Candidate4";
         candidates[3].votes = 0;
         
-        manager = msg.sender;       // only the manager is allowed to add WL addresses
+        manager = msg.sender;       // only the manager will be allowed to add WL addresses
         
     }
     
-    // se puede hacer con un modifier
-    function whiteList(address _address) public {
-        // Check that the contract creator/manager is doing the whitelisting
+    // Modifier to check that the caller of the function is the creator/manager of the contract
+    modifier onlyManager {
         require(msg.sender == manager, "Only the managar can whitelist an address to vote!");
+        _;
+    }
+    
+    /**
+     * Name: whiteList
+     * Input:  address
+     * Output: saves an address as whitelisted and able to vote
+     */ 
+    function whiteList(address _address) public onlyManager {
+        // Check that the contract creator/manager is doing the whitelisting
+        //require(msg.sender == manager, "Only the managar can whitelist an address to vote!");
         //require((_address[0] == '0') && (_address[1] == 'x'), "Whitelist address is needed!");
         Voter storage voter = electors[_address];
         voter.isWhiteListed = true;
     }
     
-    // function voteFor(uint)
+    /**
+     * Name: voteFor
+     * Input:  int (as a candidate number)
+     * Output: adds the vote to a candidate and invalidates further voting of the caller address
+     */ 
     function voteFor(uint8 _selection) public {
         // create voter to update its variables
         Voter storage voter = electors[msg.sender];
 
-        // Is it a valid vote?
-        require(_selection>=1 && _selection<=NUM_CANDIDATES, "Voting options are out of range (valid: 1-4).");
         // Is the address whitelisted?
         require(voter.isWhiteListed, "Cannot vote because this address has not been whitelisted by the manager!");
+        // Is it a valid vote?
+        require(_selection>=1 && _selection<=NUM_CANDIDATES, "Voting options are out of range (valid: 1-4).");
         // Has this address already voted?
         require(!voter.voted, "Unable to vote, already voted!");
         
@@ -80,16 +103,16 @@ contract Vote {
         voter.voted = true;
     }
     
-    
-    // function endVote() = declare Winner
-    function endVote() public view returns (bytes32 winnerName_) {
+    /**
+     * Name: endVote
+     * Input:  (void)
+     * Output: String with Winners Name (or "No one wins." if votes for a candidate not above or equal 60%)
+     */ 
+    function endVote() public view onlyManager returns (string memory winnerName_) {
         // count total votes
         uint32 totalVotes = 0;
         uint8 winner = 0;
         
-        // Only the manager can end the voting process
-        require(msg.sender == manager, "Only the managar can end the voting!");
-
         for (uint8 i = 0; i < NUM_CANDIDATES; i++) {
             totalVotes = totalVotes + candidates[i].votes;
         }
@@ -107,8 +130,12 @@ contract Vote {
         
     }
     
-    // function findWinner()
-    // read through the array and save the position of the highest votes, return that
+    /**
+     * Name: findWinner
+     * Input:  (void)
+     * Output: index of the winner
+     */ 
+    // read through the array and save the position of the highest vote, return that index/position
     function findWinner() internal view returns(uint8 winner_) {
         winner_ = 0;           // same type a NUM_CANDIDATES to avoid overflow
         uint16 highest_vote = 0;
@@ -121,7 +148,12 @@ contract Vote {
         }
     }
     
-    // fallback function - if ETH send return the amount
+    /**
+     * Name: fallback
+     * Input:  (void)
+     * Output: returns ETH to sender
+     * This fallback returns any amount of ETH send to this contract
+     */ 
     function() external payable {
         address payable wallet = msg.sender;
         wallet.transfer(msg.value);
