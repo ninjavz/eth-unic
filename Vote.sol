@@ -88,12 +88,15 @@ contract Vote {
         // Sort Candidates according to votes (low to high)
         sortCandidates(0);
         
+        // Calculate if votes above 60%
+        // votes * 100 / totalVotes >= 60
         // Winner is the last item of the sorted Array
         // Check if Winner has 60% or more votes
         return candidates[NUM_CANDIDATES].name;
     }
     
-    // function declareWinner()
+    // function findWinner()
+    // read through the array and save the position of the highest votes, return that
     function sortCandidates(uint8 _position) internal {
         bytes32 temp_name;
         uint16 temp_votes = 0;
