@@ -1,4 +1,5 @@
 pragma solidity ^0.4.13;
+// SPDX-License-Identifier: GPL-3.0
 
 /** 
  * @title Vote
@@ -7,7 +8,7 @@ pragma solidity ^0.4.13;
  
 contract Vote {
     
-    uint constant NUM_CANDIDATES = 4;
+    uint8 constant NUM_CANDIDATES = 4;  // Limits candidates to 256
     
     struct Voter {
         bool isWhiteListed;   // only registered addresses can vote
@@ -16,11 +17,11 @@ contract Vote {
 
     struct Candidate {
         bytes32 name;       // Candidate name
-        uint votes;         // Number of votes per candidate
+        uint16 votes;       // Number of votes per candidate (limited to 16 bit)
     }
     
     // These variables are stored in the blockchain
-    mapping(address => Voter) public voters;    // Map address to stuct Voter to create voters
+    mapping(address => Voter) public electors;    // Map address to stuct Voter to create voters
     address[] public voterAccounts;             // Array to store all voters
     
     Candidate[NUM_CANDIDATES] public candidates;    // variable that keeps record of the candidates
@@ -31,6 +32,7 @@ contract Vote {
     constructor() public {
         
         // Create de Candidates Names (in the future using string and for loop and concatenating)
+        // Set their respective votes to 0
         // Total candidates = 0 to NUM_CANDIDATES-1
         candidates[0].name = "Candidate1";
         candidates[0].votes = 0;
@@ -49,20 +51,40 @@ contract Vote {
         // Check that the contract creator is doing the whitelisting
         require(msg.sender == manager, "Only the managar can whitelist an address to vote!");
         
-        Voter storage voter = voters[_address];
+        Voter storage voter = electors[_address];
         voter.isWhiteListed = true;
         
-        
+        voterAccounts.push(_address);
     }
+    
     // function voteFor(uint)
-    // if msg.value > 0 then ETH send => return
+    function voteFor(uint8 _selection) public {
+        // create voter to update its variables
+        Voter storage voter = electors[msg.sender];
+
+        // Is it a valid vote?
+        require(_selection>=1 && _selection<=NUM_CANDIDATES, "Voting options are out of range (valid: 1-4).");
+        // Is the address whitelisted?
+        require(!voter.isWhiteListed, "Cannot vote because this address has not been whitelisted by the manager!");
+        // Has this address already voted?
+        require(!voter.voted, "Unable to vote, already voted!");
+        
+        // Add votes to a candidate
+        candidates[_selection - 1].votes++;
+        // mark address so it cannot vote again
+        voter.voted = true;
+    }
+    
     
     // function endVote() = declare Winner
+    function endVote() public {
+        
+    }
     
     // function declareWinner()
     
     // function fallback if ETH send
-    function() payable public {
+    function() external payable {
         
     }
 }
