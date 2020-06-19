@@ -65,7 +65,7 @@ contract Vote {
         // Is it a valid vote?
         require(_selection>=1 && _selection<=NUM_CANDIDATES, "Voting options are out of range (valid: 1-4).");
         // Is the address whitelisted?
-        require(!voter.isWhiteListed, "Cannot vote because this address has not been whitelisted by the manager!");
+        require(voter.isWhiteListed, "Cannot vote because this address has not been whitelisted by the manager!");
         // Has this address already voted?
         require(!voter.voted, "Unable to vote, already voted!");
         
@@ -77,11 +77,46 @@ contract Vote {
     
     
     // function endVote() = declare Winner
-    function endVote() public {
+    function endVote() public returns (bytes32) {
+        // count total votes
+        uint32 totalVotes = 0;
         
+        for (uint8 i = 0; i < NUM_CANDIDATES; i++) {
+            totalVotes = totalVotes + candidates[i].votes;
+        }
+        
+        // Sort Candidates according to votes (low to high)
+        sortCandidates(0);
+        
+        // Winner is the last item of the sorted Array
+        // Check if Winner has 60% or more votes
+        return candidates[NUM_CANDIDATES].name;
     }
     
     // function declareWinner()
+    function sortCandidates(uint8 _position) internal {
+        bytes32 temp_name;
+        uint16 temp_votes = 0;
+        
+        // Break recursion if end of list 
+        if (_position == (NUM_CANDIDATES - 1)) {
+            return;
+        }
+        
+        if (candidates[_position].votes > candidates[_position + 1].votes) {
+            temp_name = candidates[_position + 1].name;
+            temp_votes = candidates[_position + 1].votes;
+            
+            // Swap positions in list/Array
+            candidates[_position + 1].name = candidates[_position].name;
+            candidates[_position + 1].votes = candidates[_position].votes;
+            candidates[_position].name = temp_name;
+            candidates[_position].votes = temp_votes;
+        }
+        else {
+            sortCandidates(_position + 1);
+        }
+    }
     
     // function fallback if ETH send
     function() external payable {
