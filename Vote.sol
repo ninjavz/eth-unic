@@ -1,17 +1,20 @@
-pragma solidity ^0.4.13;
+pragma solidity ^0.5.10;
 // SPDX-License-Identifier: GPL-3.0
 
 /** 
+ * UNIC-COMP541
+ * Miguel Ramirez
+ * U191N0118
+ * 
  * @title Vote
  * @dev Implementation of a voting contract with 4 candidates
  * 
  * The contract creator is the manager and only that address can whitelist additional addresses so 
- * that they can vote.
+ * that they can vote. Also, only the manager can end the voting process to declare a winner.
  * The Winner needs 60% or more votes to win.
  */
  
 contract Vote {
-    
     uint8 constant NUM_CANDIDATES = 4;  // Limits candidates to 256
     
     struct Voter {
@@ -79,13 +82,13 @@ contract Vote {
     
     
     // function endVote() = declare Winner
-    function endVote() public view returns (bytes32) {
+    function endVote() public view returns (bytes32 winnerName_) {
         // count total votes
         uint32 totalVotes = 0;
         uint8 winner = 0;
         
         // Only the manager can end the voting process
-        require(msg.sender == manager, "Only the managar can emd the voting!");
+        require(msg.sender == manager, "Only the managar can end the voting!");
 
         for (uint8 i = 0; i < NUM_CANDIDATES; i++) {
             totalVotes = totalVotes + candidates[i].votes;
@@ -93,34 +96,34 @@ contract Vote {
         
         // Get the index of the candidate with the most votes
         winner = findWinner();
-        
+
         // Calculate if votes above 60%, if so return that winners name
         if ((candidates[winner].votes * 100 / totalVotes) >= 60) {
-            return candidates[winner].name;
+            winnerName_ = candidates[winner].name;
+        }
+        else {
+            winnerName_ = "No one wins.";
         }
         
-        return "No one wins.";
     }
     
     // function findWinner()
     // read through the array and save the position of the highest votes, return that
-    function findWinner() internal view returns(uint8) {
-        uint8 winner = 0;           // same type a NUM_CANDIDATES to avoid overflow
+    function findWinner() internal view returns(uint8 winner_) {
+        winner_ = 0;           // same type a NUM_CANDIDATES to avoid overflow
         uint16 highest_vote = 0;
         
         for (uint8 i = 0; i < NUM_CANDIDATES; i++) {
             if (candidates[i].votes > highest_vote) {
                 highest_vote = candidates[i].votes;
-                winner = i;
+                winner_ = i;
             }
         }
-        
-        return winner;        
     }
     
     // fallback function - if ETH send return the amount
     function() external payable {
-        address wallet = msg.sender;
+        address payable wallet = msg.sender;
         wallet.transfer(msg.value);
     }
 }
