@@ -12,10 +12,12 @@ pragma solidity ^0.5.1;
  * The contract creator is the manager and only that address can whitelist additional addresses so 
  * that they can vote. Also, only the manager can end the voting process to declare a winner.
  * The Winner needs 60% or more votes to win.
+ * The timeframe that the voting is permitted is specified by the creator of the contract by 
+ * giving only the creator the ability to end the poll (voting) whenever he chooses.
  */
  
 contract Vote {
-    uint8 constant NUM_CANDIDATES = 4;  // Limits candidates to 256
+    uint8 constant NUM_CANDIDATES = 4;  // Allowed is 1-9
     
     // Voter structure to keep track of Whitelisted addresses and voting status
     struct Voter {
@@ -41,30 +43,23 @@ contract Vote {
     // Sets the manager to the calling address (the creator of the contract)
     constructor() public {
         
-        // Create the Candidates Names (in the future using string and for loop and concatenating)
+        // Create the Candidates Names 
         // Set their respective votes to 0
-        // Total candidates = 0 to NUM_CANDIDATES-1
-        // For future implmentation a FOR loop
-        //for (uint8 i = 0; i < NUM_CANDIDATES - 1; i++) {
-        //    candidates[i].name = string(abi.encodePacked("Candidate ", string(i)));
-        //    candidates[i].votes = 0;
-        //}
-        candidates[0].name = "Candidate1";
-        candidates[0].votes = 0;
-        candidates[1].name = "Candidate2";
-        candidates[1].votes = 0;
-        candidates[2].name = "Candidate3";
-        candidates[2].votes = 0;
-        candidates[3].name = "Candidate4";
-        candidates[3].votes = 0;
+        require((NUM_CANDIDATES > 0) && (NUM_CANDIDATES < 10), "Too many candidates or no candidates!");  // avoid overflow in the for loop
+        
+        bytes32 numbers = "123456789";
+        
+        for (uint8 i = 0; i < NUM_CANDIDATES; i++) {
+            candidates[i].name = string(abi.encodePacked("Candidate-", numbers[i]));
+            candidates[i].votes = 0;
+        }
         
         manager = msg.sender;       // only the manager will be allowed to add WL addresses
-        
     }
     
     // Modifier to check that the caller of the function is the creator/manager of the contract
     modifier onlyManager {
-        require(msg.sender == manager, "Only the managar can whitelist an address to vote!");
+        require(msg.sender == manager, "Only the managar can whitelist an address to vote or end the poll!");
         _;
     }
     
@@ -74,9 +69,6 @@ contract Vote {
      * Output: saves an address as whitelisted and able to vote
      */ 
     function whiteList(address _address) public onlyManager {
-        // Check that the contract creator/manager is doing the whitelisting
-        //require(msg.sender == manager, "Only the managar can whitelist an address to vote!");
-        //require((_address[0] == '0') && (_address[1] == 'x'), "Whitelist address is needed!");
         Voter storage voter = electors[_address];
         voter.isWhiteListed = true;
     }
@@ -107,8 +99,9 @@ contract Vote {
      * Name: endVote
      * Input:  (void)
      * Output: String with Winners Name (or "No one wins." if votes for a candidate not above or equal 60%)
+     *         Integer value of votes received by the Winner
      */ 
-    function endVote() public view onlyManager returns (string memory winnerName_) {
+    function endVote() public view onlyManager returns (string memory winnerName_, uint32 votes_) {
         // count total votes
         uint32 totalVotes = 0;
         uint8 winner = 0;
@@ -117,17 +110,25 @@ contract Vote {
             totalVotes = totalVotes + candidates[i].votes;
         }
         
-        // Get the index of the candidate with the most votes
-        winner = findWinner();
-
-        // Calculate if votes above 60%, if so return that winners name
-        if ((candidates[winner].votes * 100 / totalVotes) >= 60) {
-            winnerName_ = candidates[winner].name;
+        // If nobody votes then there is no winner and avoid division by 0
+        if (totalVotes == 0) {
+            winnerName_ = "No one wins.";
+            votes_ = 0;
         }
         else {
-            winnerName_ = "No one wins.";
+            // Get the index of the candidate with the most votes
+            winner = findWinner();
+
+            // Calculate if votes above 60%, if so return that winners name
+            if ((candidates[winner].votes * 100 / totalVotes) >= 60) {
+                winnerName_ = candidates[winner].name;
+                votes_ = candidates[winner].votes;
+            }
+            else {
+                winnerName_ = "No one wins.";
+                votes_ = 0;
+            }
         }
-        
     }
     
     /**
